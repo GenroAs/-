@@ -1,0 +1,6 @@
+{
+  "name": "Wynn's Jyrgal & Gulnura",
+  "description": "Учет товаров, калькулятор партий и цен, история расчетов и расходов с автономным сохранением на устройстве и экспортом в Excel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
