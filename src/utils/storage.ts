@@ -8,7 +8,16 @@ export function getInitialLocalData(): AppData {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.products)) {
-        return parsed;
+        // Filter out legacy sample/demo mock products
+        const sampleIds = ['prod-eggs', 'prod-milk', 'prod-oil'];
+        const cleanProducts = parsed.products.filter(
+          (p: any) => !sampleIds.includes(p.id) && !p.id?.startsWith('prod-demo-')
+        );
+        return {
+          ...parsed,
+          products: cleanProducts,
+          calculations: [],
+        };
       }
     }
   } catch (e) {
@@ -18,7 +27,7 @@ export function getInitialLocalData(): AppData {
   return {
     syncId: 'local',
     currency: '₽',
-    products: INITIAL_PRODUCTS,
+    products: [],
     calculations: [],
     lastModified: Date.now(),
   };

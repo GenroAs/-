@@ -6,9 +6,9 @@ import { HistoryView } from './components/HistoryView';
 import { BatchAddModal } from './components/BatchAddModal';
 import { ProductFormModal } from './components/ProductFormModal';
 import { ExcelModal } from './components/ExcelModal';
+import { ResetConfirmModal, ResetMode } from './components/ResetConfirmModal';
 import { Product, CalculationRecord, CalculationItem, Batch, AppData } from './types';
 import { getInitialLocalData, saveLocalData } from './utils/storage';
-import { generateTestProducts } from './utils/demo';
 
 export default function App() {
   // Initial local state directly from this device's localStorage
@@ -23,6 +23,7 @@ export default function App() {
   // Modals state
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
   const [batchTargetProduct, setBatchTargetProduct] = useState<Product | null>(null);
 
@@ -88,6 +89,27 @@ export default function App() {
       });
       updateAppData(updated);
     } else {
+      // Check if product with this exact name already exists in catalog
+      const existingProduct = products.find(
+        (p) => p.name.trim().toLowerCase() === prodData.name.trim().toLowerCase()
+      );
+
+      if (existingProduct) {
+        if (prodData.initialBatch && prodData.initialBatch.quantity > 0) {
+          handleAddBatch(existingProduct.id, {
+            date: prodData.initialBatch.date || new Date().toISOString().slice(0, 10),
+            quantity: prodData.initialBatch.quantity,
+            pricePerUnit: prodData.initialBatch.price,
+            totalCost: prodData.initialBatch.quantity * prodData.initialBatch.price,
+            supplier: prodData.initialBatch.supplier,
+            note: prodData.initialBatch.note,
+          });
+          setIsNewProductModalOpen(false);
+          setProductToEdit(null);
+          return;
+        }
+      }
+
       // Create new product
       const newProdId = `prod-${Date.now()}`;
       const newBatches: Batch[] = [];
@@ -130,13 +152,13 @@ export default function App() {
       if (p.id !== productId) return p;
       const newBatch: Batch = {
         ...batchData,
-        id: `batch-${Date.now()}`,
+        id: `batch-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         productId,
         createdAt: nowIso,
       };
       return {
         ...p,
-        batches: [newBatch, ...(p.batches || [])],
+        batches: [...(p.batches || []), newBatch],
         updatedAt: nowIso,
       };
     });
@@ -216,20 +238,43 @@ export default function App() {
     }
   };
 
-  // Demo products generator (1 000 items)
-  const handleGenerate1000Demo = () => {
-    const demo = generateTestProducts(1000);
-    const nonDemo = products.filter((p) => !p.id.startsWith('test-prod-'));
-    updateAppData([...demo, ...nonDemo]);
+  // Reset action (all, quantities, or prices)
+  const handleResetAction = (mode: ResetMode) => {
+    if (mode === 'all') {
+      updateAppData([], []);
+      saveLocalData({
+        syncId: 'local',
+        currency,
+        products: [],
+        calculations: [],
+        lastModified: Date.now(),
+      });
+    } else if (mode === 'quantities') {
+      // Zero out stock quantities across all products, keeping prices and batches
+      const updated = products.map((p) => ({
+        ...p,
+        updatedAt: new Date().toISOString(),
+        batches: p.batches.map((b) => ({
+          ...b,
+          quantity: 0,
+          totalCost: 0,
+        })),
+      }));
+      updateAppData(updated, calculations);
+    } else if (mode === 'prices') {
+      // Zero out prices across all products, keeping quantities and stock
+      const updated = products.map((p) => ({
+        ...p,
+        updatedAt: new Date().toISOString(),
+        batches: p.batches.map((b) => ({
+          ...b,
+          pricePerUnit: 0,
+          totalCost: 0,
+        })),
+      }));
+      updateAppData(updated, calculations);
+    }
   };
-
-  // Clear 1 000 demo products
-  const handleClearDemo = () => {
-    const filtered = products.filter((p) => !p.id.startsWith('test-prod-'));
-    updateAppData(filtered);
-  };
-
-  const hasDemoProducts = products.some((p) => p.id.startsWith('test-prod-'));
 
   // Unique categories list
   const allCategories = React.useMemo(() => {
@@ -250,6 +295,7 @@ export default function App() {
         currency={currency}
         setCurrency={(c) => updateAppData(products, calculations, c)}
         onOpenExcelModal={() => setIsExcelModalOpen(true)}
+        onOpenResetModal={() => setIsResetModalOpen(true)}
         productsCount={products.length}
         historyCount={calculations.length}
       />
@@ -260,11 +306,8 @@ export default function App() {
           <CalculatorView
             products={products}
             currency={currency}
-            onSaveCalculation={handleSaveCalculation}
             onAddNewBatchToProduct={handleAddBatch}
             onAddNewProduct={handleAddNewProductFromCalc}
-            loadedItems={loadedCalculation?.items || null}
-            loadedTitle={loadedCalculation?.title || null}
           />
         )}
 
@@ -283,9 +326,7 @@ export default function App() {
             onOpenAddBatchModal={(p) => setBatchTargetProduct(p)}
             onDeleteProduct={handleDeleteProduct}
             onDeleteBatch={handleDeleteBatch}
-            onGenerate1000Demo={handleGenerate1000Demo}
-            onClearDemo={handleClearDemo}
-            hasDemoProducts={hasDemoProducts}
+            onOpenResetModal={() => setIsResetModalOpen(true)}
           />
         )}
 
@@ -301,6 +342,13 @@ export default function App() {
       </main>
 
       {/* Modals */}
+      <ResetConfirmModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        onConfirmReset={handleResetAction}
+        productsCount={products.length}
+      />
+
       <BatchAddModal
         isOpen={!!batchTargetProduct}
         onClose={() => setBatchTargetProduct(null)}

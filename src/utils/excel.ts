@@ -216,8 +216,17 @@ export async function parseExcelFile(file: File): Promise<ImportedRow[]> {
     const supplier = findValue('поставщик', 'supplier');
     const note = findValue('примечание', 'комментарий', 'note', 'comment');
 
-    const quantity = parseFloat(String(rawQty).replace(',', '.')) || 1;
-    const price = parseFloat(String(rawPrice).replace(',', '.')) || 0;
+    let quantity = 0;
+    if (rawQty !== undefined && rawQty !== null && String(rawQty).trim() !== '') {
+      const parsed = parseFloat(String(rawQty).replace(',', '.'));
+      quantity = isNaN(parsed) ? 0 : Math.max(0, parsed);
+    }
+
+    let price = 0;
+    if (rawPrice !== undefined && rawPrice !== null && String(rawPrice).trim() !== '') {
+      const parsed = parseFloat(String(rawPrice).replace(',', '.'));
+      price = isNaN(parsed) ? 0 : Math.max(0, parsed);
+    }
 
     result.push({
       name: String(name).trim(),

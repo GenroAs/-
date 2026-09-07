@@ -24,7 +24,6 @@ import {
 } from 'lucide-react';
 import { Product } from '../types';
 import { formatCurrency, formatNumber, getProductMetrics } from '../utils/calc';
-import { getStorageUsage } from '../utils/demo';
 
 interface ProductsViewProps {
   products: Product[];
@@ -34,9 +33,7 @@ interface ProductsViewProps {
   onOpenAddBatchModal: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
   onDeleteBatch: (productId: string, batchId: string) => void;
-  onGenerate1000Demo?: () => void;
-  onClearDemo?: () => void;
-  hasDemoProducts?: boolean;
+  onOpenResetModal: () => void;
 }
 
 type SortOption =
@@ -56,9 +53,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
   onOpenAddBatchModal,
   onDeleteProduct,
   onDeleteBatch,
-  onGenerate1000Demo,
-  onClearDemo,
-  hasDemoProducts,
+  onOpenResetModal,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -66,14 +61,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(25);
 
-  const [expandedProductIds, setExpandedProductIds] = useState<Record<string, boolean>>({
-    'prod-eggs': true, // Auto-expand sample eggs product to show batch history
-  });
-
-  // Calculate storage usage metrics
-  const storageInfo = useMemo(() => {
-    return getStorageUsage(products);
-  }, [products]);
+  const [expandedProductIds, setExpandedProductIds] = useState<Record<string, boolean>>({});
 
   // Extract all categories and count items per category
   const categoryCounts = useMemo(() => {
@@ -215,65 +203,6 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
 
   return (
     <div className="space-y-6">
-      
-      {/* 1000+ Items Capacity & Scale Info Banner */}
-      <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-sky-50 border border-emerald-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-start space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
-              <Zap className="w-5 h-5 text-emerald-100" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2 flex-wrap">
-                <h3 className="text-sm sm:text-base font-bold text-emerald-950">
-                  Вместимость и масштабируемость: легко поддерживает более 10 000 товаров
-                </h3>
-                <span className="text-2xs font-black uppercase px-2 py-0.5 rounded-md bg-emerald-200/70 text-emerald-900">
-                  100% готов к нагрузке
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-emerald-900/80 leading-relaxed mt-1">
-                Приложение работает автономно на вашем устройстве: данные сохраняются мгновенно в памяти вашего телефона. На каждом устройстве база полностью изолирована (вы можете вести стройматериалы, а коллега на своём телефоне — косметику).
-              </p>
-              
-              {/* Storage meter */}
-              <div className="flex items-center space-x-3 mt-2.5 text-xs text-emerald-800">
-                <div className="flex items-center space-x-1.5 font-medium">
-                  <HardDrive className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Занято памяти: <strong>{storageInfo.formatted}</strong> из 5 000 КБ ({storageInfo.percentOfQuota}%)</span>
-                </div>
-                <span>•</span>
-                <span>Товаров в базе: <strong>{products.length}</strong></span>
-              </div>
-            </div>
-          </div>
-
-          {/* Demonstration Action Buttons */}
-          <div className="flex items-center space-x-2 shrink-0 self-stretch md:self-auto justify-end">
-            {hasDemoProducts ? (
-              <button
-                id="btn-clear-demo-products"
-                onClick={onClearDemo}
-                className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 transition-colors shadow-2xs"
-                title="Удалить тестовую 1 000 товаров и вернуть ваш каталог"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Удалить 1 000 демо-товаров</span>
-              </button>
-            ) : (
-              <button
-                id="btn-generate-1000-demo"
-                onClick={onGenerate1000Demo}
-                className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs transition-transform active:scale-[0.98]"
-                title="Сгенерировать 1 000 реалистичных товаров для проверки скорости работы"
-              >
-                <Sparkles className="w-4 h-4 text-emerald-200" />
-                <span>Загрузить 1 000 тестовых товаров</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* Top Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -431,8 +360,20 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
             </div>
           </div>
 
-          {/* Add Product Button */}
+          {/* Action Buttons */}
           <div className="flex items-center space-x-2 shrink-0">
+            {products.length > 0 && (
+              <button
+                id="btn-reset-all-products"
+                onClick={onOpenResetModal}
+                className="flex items-center space-x-1.5 px-3 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs sm:text-sm font-bold transition-colors shadow-2xs"
+                title="Сбросить все товары с подтверждением защитным кодом"
+              >
+                <Trash2 className="w-4 h-4 text-rose-600" />
+                <span>Очистить базу</span>
+              </button>
+            )}
+
             <button
               id="btn-new-product"
               onClick={onOpenNewProductModal}
@@ -699,7 +640,12 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                                   {b.quantity} {p.unit}
                                 </td>
                                 <td className="p-2.5 text-right font-mono font-semibold text-slate-800">
-                                  {formatCurrency(b.pricePerUnit, currency)}
+                                  <span>{formatCurrency(b.pricePerUnit, currency)}</span>
+                                  {idx === metrics.sortedBatches.length - 1 && metrics.sortedBatches.length > 1 && (
+                                    <span className="ml-1.5 text-2xs px-1.5 py-0.5 rounded-sm bg-emerald-100 text-emerald-800 font-bold tracking-tight inline-block">
+                                      Актуальная
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="p-2.5 text-right font-mono font-bold text-emerald-800">
                                   {formatCurrency(b.totalCost ?? b.quantity * b.pricePerUnit, currency)}

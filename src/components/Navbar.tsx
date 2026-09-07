@@ -6,6 +6,7 @@ import {
   FileSpreadsheet,
   Smartphone,
   ChevronDown,
+  Trash2,
 } from 'lucide-react';
 import { CURRENCIES } from '../types';
 
@@ -15,6 +16,7 @@ interface NavbarProps {
   currency: string;
   setCurrency: (currency: string) => void;
   onOpenExcelModal: () => void;
+  onOpenResetModal: () => void;
   productsCount: number;
   historyCount: number;
 }
@@ -25,6 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currency,
   setCurrency,
   onOpenExcelModal,
+  onOpenResetModal,
   productsCount,
   historyCount,
 }) => {
@@ -142,6 +145,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               <FileSpreadsheet className="w-4 h-4 stroke-[2]" />
               <span className="hidden sm:inline font-semibold">Excel</span>
             </button>
+
+            {/* Reset All Products with Captcha */}
+            {productsCount > 0 && (
+              <button
+                id="btn-open-reset-modal"
+                onClick={onOpenResetModal}
+                title="Сбросить все товары с подтверждением защитным кодом"
+                className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors shadow-2xs"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                <span className="hidden sm:inline">Сбросить товары</span>
+              </button>
+            )}
           </div>
         </div>
 
